@@ -12,19 +12,17 @@ folder = os.getcwd()
 typeEmail = os.listdir()
 typeEmail.sort()
 mapCountWords = {"SPAM": {}, "HAM": {}}
+globalCountWords = {"SPAM": 0, "HAM": 0}
 
 lock = threading.Lock()
 
 
 def updateMapCountWords(typeEmail, values: dict):
-    # if (typeEmail == "ham"):
-    #     global mapCountWordsHam
-    #     mapTypeEmail = mapCountWordsHam
-    # else:
-    #     global mapCountWordsSpam
+    global globalCountWords
     global mapCountWords
     valuesInKey = mapCountWords[typeEmail]
     for k in values.keys():
+        globalCountWords[typeEmail] += values.get(k)
         if not valuesInKey.get(k):
             valuesInKey[k] = values.get(k)
         else:
@@ -38,55 +36,60 @@ def thread_task(lock, key, values):
     # lock.release()
 
 
-string = ""
-
-
 def discoveryForTypeEmail(path, typeEmail, lock):
-    # lock.acquire()
-    global string
-    os.chdir(path+"/"+typeEmail)
-    listFiles = os.listdir()
-    # lock.release()
+    listFiles = os.listdir(path+"/"+typeEmail)
     for j in listFiles:
-
-        # print(path+"/"+typeEmail+"/",end='')
-        # print(j)
         with open(path+"/"+typeEmail+"/"+j, 'r', encoding="utf8", errors='ignore') as f:
             t = f.read()
         mapWords = getBody(t)
-        # string=" ".join(mapWords)
         thread_task(lock, typeEmail[:-1].upper(), mapWords)
         f.close()
 
 
 def discoveryWords(path, typeEmail, lock):
-    vetThreads = []
+    # vetThreads = []
     for i in typeEmail:
-        # print(path+"/"+i)
         discoveryForTypeEmail(path, i, lock)
-        # vetThreads.append(threading.Thread(target=discoveryForTypeEmail, args=(path,i,lock)))
+        # vetThreads.append(threading.Thread(
+        #     target=discoveryForTypeEmail, args=(path, i, lock)))
         # vetThreads[len(vetThreads)-1].start()
         # vetThreads[len(vetThreads)-1].join()
 
 
+def removingIrrelevantValues(mapWords, key):
+    mapCountWords[key] = {key: val for key,
+                          val in mapCountWords[key].items() if val > 1}
+    print(list(mapCountWords[key])[0])
+
+
+def removeApproximateValues(mapWords, x: float, y: float):
+    auxMap = mapCountWords["SPAM"].copy()
+    for key, val in auxMap.items():
+        if mapCountWords["HAM"].get(key) and float(val) >= x*float(mapCountWords["HAM"].get(key)) and float(val) < y*float(mapCountWords["HAM"].get(key)):
+            print("Removing "+key+" : ",
+                  float(mapCountWords["HAM"].get(key)) / float(mapCountWords["SPAM"].get(key)))
+            mapCountWords["HAM"].pop(key)
+            mapCountWords["SPAM"].pop(key)
+
+
+def normalizeClass(mapCountWords, globalCountWords, key):
+
+    valuesInKey = mapCountWords[key]
+    for x, y in valuesInKey.items():
+        valuesInKey[x] = valuesInKey[x]/globalCountWords[key]
+    # valuesInKey.update({print(valuesInKey.get(x))
+    #                    for x, y in valuesInKey.items()})
+    mapCountWords[key] = valuesInKey
+
+
 discoveryWords(folder, typeEmail, lock)
-# Removendo valores irrelevantes
-mapCountWords["SPAM"] = {key: val for key,
-                         val in mapCountWords["SPAM"].items() if val > 1}
-mapCountWords["HAM"] = {key: val for key,
-                        val in mapCountWords["HAM"].items() if val > 1}
-keysToRemove = []
-values = {}
-# Removendo valores muito aproximados (entre 1 vez e 1.5 vezes)
-for key, val in mapCountWords["SPAM"].items():
-    if mapCountWords["HAM"].get(key) and float(val) >= 0.7*float(mapCountWords["HAM"].get(key)) and float(val) < 1.3*float(mapCountWords["HAM"].get(key)):
-        keysToRemove.append(key)
-        values[key] = (mapCountWords["HAM"].get(
-            key), mapCountWords["SPAM"].get(key))
-print(values)
-for key in keysToRemove:
-    mapCountWords["HAM"].pop(key)
-    mapCountWords["SPAM"].pop(key)
+removingIrrelevantValues(mapCountWords, "SPAM")
+removingIrrelevantValues(mapCountWords, "HAM")
+removeApproximateValues(mapCountWords, 0.7, 1.3)
+normalizeClass(mapCountWords, globalCountWords, "SPAM")
+normalizeClass(mapCountWords, globalCountWords, "HAM")
+
+
 os.chdir("/mnt/c/Users/Yuri/Documents/projetos/Ia/Email/")
 export = open("export.json", 'w')
 json_obj = json.dumps(mapCountWords, indent=4)
