@@ -4,16 +4,26 @@ import mailparser
 
 
 class email:
-    def __init__(self, header, body) -> None:
-        self.header = header
+    def __init__(self, typeEmail, body) -> None:
+        self.typeEmail
         self.body = body
 
 
+"""
+listBody = lista de palavras ja tratadas do corpo do email
+listWords = lista de palavras que tem no email, nao repetidas
+mapCountWords = dict com a quantidade de ocorrencias de cada palavra no email
+arrayMappingWords = array de posicao para a formacao de tabela com a frequencia de palavras
+"""
+
+
 class bodyEmail:
-    def __init__(self, listBody):
+    def __init__(self, listBody, typeEmail=None):
         self.listBody = listBody
+        self.typeEmail = typeEmail
         self.listWords = set()
         self.mapCountWords = {}
+        self.arrayMappingWorlds = []
 
         self._filterWords()
         self._listUniqueWords()
@@ -81,7 +91,7 @@ class header:
         return "".join(self.listHeader)
 
 
-def getBody(t):
+def getBody(t, typeEmail=None):
     mail = mailparser.parse_from_string(t)
 
     # headerStrList = []
@@ -99,5 +109,5 @@ def getBody(t):
     #         bodyStrList.append(i)
     #         if i == t.splitlines()[-1]:
     #             b = bodyEmail(bodyStrList)
-    b = bodyEmail(mail.body)
-    return b.mapCountWords
+
+    return bodyEmail(mail.body, typeEmail)
