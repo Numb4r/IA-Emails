@@ -41,8 +41,8 @@ def discoveryForTypeEmail(path, typeEmail, lock):
     for j in listFiles:
         with open(path+"/"+typeEmail+"/"+j, 'r', encoding="utf8", errors='ignore') as f:
             t = f.read()
-        mapWords = getBody(t)
-        thread_task(lock, typeEmail[:-1].upper(), mapWords)
+        body = getBody(t)
+        thread_task(lock, typeEmail[:-1].upper(), body.mapCountWords)
         f.close()
 
 
@@ -83,8 +83,8 @@ def normalizeClass(mapCountWords, globalCountWords, key):
 
 
 discoveryWords(folder, typeEmail, lock)
-removingIrrelevantValues(mapCountWords, "SPAM")
-removingIrrelevantValues(mapCountWords, "HAM")
+# removingIrrelevantValues(mapCountWords, "SPAM")
+# removingIrrelevantValues(mapCountWords, "HAM")
 removeApproximateValues(mapCountWords, 0.7, 1.3)
 normalizeClass(mapCountWords, globalCountWords, "SPAM")
 normalizeClass(mapCountWords, globalCountWords, "HAM")
