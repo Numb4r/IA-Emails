@@ -1,10 +1,15 @@
 # from sklearn.datasets import load_wine
-from sklearn.feature_selection import RFE
-from sklearn.tree import DecisionTreeClassifier
+# from sklearn.feature_selection import RFE
+# from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+from sklearn.utils import Bunch
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 import csv
 from loadDataset import *
 import pandas as pd
-from sklearn.utils import Bunch
 import numpy as np
 
 
@@ -29,16 +34,30 @@ def load_my_fancy_dataset():
 
 
 file = load_my_fancy_dataset()
-# print(file.y)
 X = file.data
 y = file.target
-clf = DecisionTreeClassifier(max_leaf_nodes=10, random_state=0)
-print("Start selecting features")
-feature_selection = RFE(clf, n_features_to_select=200, step=1)
-print("Starting...")
-fs = feature_selection.fit(X, y)
-print(fs.support_)
-print(fs.ranking_)
-for i in range(X.shape[1]):
-    print('Column: %d, Selected %s, Rank: %.3f' %
-          (i, fs.support_[i], fs.ranking_[i]))
+feature_names = file.feature_names
+
+
+# SELECT K ATTRIBUTES
+KBest = SelectKBest(chi2, k=100)
+
+X_new = KBest.fit_transform(X, y)
+column_names = [column[0]
+                for column in zip(file.feature_names, KBest.get_support()) if column[1]]
+
+
+# Separando treinamento e teste
+
+X_train, X_val, y_train, y_val = train_test_split(
+    X_new, y, test_size=0.2, random_state=1)
+
+
+# APPLY NAIVE BAYERS
+nb = GaussianNB()
+nb.fit(X_train, y_train)
+
+y_pred = nb.predict(X_val)
+print(nb.score(X_val, y_val))
+resp = pd.DataFrame({"Atual": y_val, "Previsao": y_pred})
+print(resp)
